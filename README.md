@@ -7,6 +7,7 @@ No servers, no tracking, no data leaks. Every operation (encryption, hashing, fi
 🌐 Live Access
 
 🔹 Web App: https://nexuscybertools.netlify.app/
+
 🤖 Android APK: https://storage.appilix.com/uploads/app-apk-690a3f93bc4c4-1762279315.apk
 
 ⚙️ Features
@@ -15,10 +16,15 @@ NEXUS combines six essential cybersecurity tools into one sleek and powerful int
 
 🧩 Core Tools
 🔒 AES Cryptography – Encrypt or decrypt sensitive messages using AES-256 with a password.
+
 #️⃣ Hash Calculator – Generate cryptographic hashes (MD5, SHA-1, SHA-256) for text or files instantly.
+
 📷 EXIF Data Viewer – Analyze image metadata (camera, GPS, timestamp) securely on your device.
+
 🔑 Password Generator – Create strong, random, and customizable passwords.
+
 💪 Password Strength Checker – Analyze and rate password security in real time.
+
 🔄 Codec Utility – Encode and decode Base64 or URL-safe strings in seconds.
 
 🛡️ Privacy-First Design
