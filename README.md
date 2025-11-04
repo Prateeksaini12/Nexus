@@ -8,7 +8,7 @@ Try it live right now in your browser or install the official Android APK!
 
 🌐 Web App: https://nexuscybertools.netlify.app/
 
-🤖 Android APK: Download Here
+🤖 Android APK: https://storage.appilix.com/uploads/app-apk-690a3f93bc4c4-1762279315.apk
 
 🛠️ Features
 
