@@ -4,11 +4,13 @@ An All-in-One Client-Side Security Utility for Privacy-Conscious Users
 NEXUS is a professional, privacy-first web application that provides a complete suite of essential cybersecurity tools — all running 100% in your browser.
 No servers, no tracking, no data leaks. Every operation (encryption, hashing, file analysis) happens locally on your device to ensure complete data privacy.
 
+
 🌐 Live Access
 
 🔹 Web App: https://nexuscybertools.netlify.app/
 
 🤖 Android APK: https://storage.appilix.com/uploads/app-apk-690a3f93bc4c4-1762279315.apk
+
 
 ⚙️ Features
 
@@ -25,14 +27,18 @@ NEXUS combines six essential cybersecurity tools into one sleek and powerful int
 
 💪 Password Strength Checker – Analyze and rate password security in real time.
 
+
 🔄 Codec Utility – Encode and decode Base64 or URL-safe strings in seconds.
 
 🛡️ Privacy-First Design
 
 Unlike most online tools, NEXUS performs all operations on the client-side using JavaScript.
 ✅ No internet dependency after load
+
 ✅ No data collection or server communication
+
 ✅ Safe for offline or air-gapped environments
+
 
 💻 Tech Stack
 
