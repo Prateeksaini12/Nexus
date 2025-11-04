@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Toolkit</title>
+    
+    <!-- FAVICON LINK ADDED HERE -->
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+    
+    <!-- 1. Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Load crypto-js for hashing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+
+    <!-- 3. Load Particles.js -->
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+    <!-- 4. Load EXIF-js for Image Forensics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+
+    <!-- 5. Setup Tailwind custom theme and fonts -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['"Fira Code"', 'monospace']
+                    },
+                    colors: {
+                        'primary': '#3b82f6', // blue-500
+                        'primary-hover': '#2563eb', // blue-600
+                        'accent': '#06b6d4', // cyan-500
+                        'accent-dark': '#0e7490', // cyan-700 for active tab bg
+                        'dark-bg': '#0f172a', // slate-900 (Inputs)
+                        'dark-surface': '#111827', // gray-900 (Main content area)
+                        'dark-border': '#374151', // gray-700
+                        'dark-text': '#f9fafb', // gray-50
+                        'dark-text-dim': '#9ca3af', // gray-400
+                        'dark-base': '#030712', // gray-950 (Page background)
+                    },
+                    animation: {
+                        'fade-in-down': 'fadeInDown 0.4s ease-out forwards',
+                        'zoom-pop': 'zoomPop 0.3s ease-out forwards',
+                        'click-pulse': 'clickPulse 0.3s ease-out',
+                        'jiggle': 'jiggle 0.4s ease',
+                    },
+                    keyframes: {
+                        fadeInDown: {
+                            '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        zoomPop: {
+                            '0%': { transform: 'scale(0.95)', opacity: '0.7' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
+                        },
+                        clickPulse: {
+                            '0%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(0.97)', opacity: '0.9' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        },
+                        jiggle: {
+                            '0%, 100%': { transform: 'rotate(0)' },
+                            '25%': { transform: 'rotate(-5deg)' },
+                            '75%': { transform: 'rotate(5deg)' }
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+    
+    <!-- 6. Import Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- 7. Custom CSS -->
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2563eb; }
+
+        /* Styling for the background */
+        body { background-color: #030712; /* dark-base */ }
+
+        /* Password strength bar transition */
+        #strength-bar-fill {
+            transition: width 0.3s ease-out, background-color 0.3s ease-out;
+        }
+
+        /* Tab content animation */
+        .tab-content {
+            display: none; /* Hidden by default */
+            animation: fadeInDown 0.4s ease-out forwards;
+        }
+        .tab-content.active {
+            display: block; /* Shown when active */
+        }
+
+        /* NEXUS title style (no glow) */
+        .nexus-title { color: #06b6d4; /* accent */ text-shadow: none; }
+
+        /* Particles.js container */
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #030712;
+        }
+        
+        /* App container layout */
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- Utility classes for JS injection --- */
+        .bg-red-600, .bg-yellow-500, .bg-blue-500, .bg-accent { }
+        .text-red-600, .text-yellow-500, .text-blue-500, .text-accent { }
+        .text-red-500 { }
+
+        /* --- EXIF Drop Zone Styling --- */
+        .drop-zone {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            border: 2px dashed #374151; /* dark-border */
+            border-radius: 0.375rem; /* rounded-md */
+            background-color: #0f172a; /* dark-bg */
+            color: #9ca3af; /* dark-text-dim */
+            font-family: 'Fira Code', monospace;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #3b82f6; /* primary */
+            color: #f9fafb; /* dark-text */
+        }
+    </style>
+</head>
+<body class="font-sans bg-dark-base text-dark-text antialiased">
+
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center transition-opacity duration-500 ease-out">
+        <div id="particles-js"></div>
+        <div class="relative z-10 text-center">
+            <h1 class="text-7xl md:text-8xl font-bold nexus-title animate-zoom-pop">
+                NEXUS
+            </h1>
+            <p class="text-lg text-dark-text-dim font-mono mt-4 animate-fade-in-down" style="animation-delay: 0.3s;">Loading Security Toolkit...</p>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app-container" class="opacity-0 transition-opacity duration-500 ease-in">
+        
+        <!-- Header -->
+        <header class="w-full max-w-7xl mx-auto px-4 pt-8 md:pt-12 text-center opacity-0 animate-fade-in-down" style="animation-delay: 0.2s;">
+            <h1 class="text-5xl md:text-6xl font-bold nexus-title">
+                NEXUS
+            </h1>
+            <p class="text-lg text-dark-text-dim font-mono mt-2">Security Toolkit</p>
+        </header>
+
+        <!-- Main Content Box -->
+        <div class="w-full max-w-7xl mx-auto p-4 flex-grow flex flex-col md:flex-row bg-dark-surface border border-dark-border/50 rounded-lg shadow-2xl shadow-primary/10 overflow-hidden my-6 opacity-0 animate-fade-in-down" style="animation-delay: 0.4s;">
+
+            <!-- Sidebar Navigation -->
+            <nav class="flex-shrink-0 bg-dark-surface border-b md:border-b-0 md:border-r border-dark-border/50 p-2 md:p-4 flex md:flex-col justify-around md:justify-start md:w-64" aria-label="Tabs">
+                <button class="nav-btn active-nav group" data-tab="hash">
+                    <svg class="w-5 h-5 mr-0 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
+                    <span class="hidden md:inline">Hash Calculator</span>
+                </button>
+                <button class="nav-btn group" data-tab="codec">
+                    <svg class="w-5 h-5 mr-0 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                    <span class="hidden md:inline">Codec</span>
+                </button>
+                <button class="nav-btn group" data-tab="pass-gen">
+                    <svg class="w-5 h-5 mr-0 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H5v-2H3v-2H1v-2h2v-2h2v2h2v-2h2l1.5-1.5m3.5-3.5a2 2 0 012-2"></path></svg>
+                    <span class="hidden md:inline">Pass Generator</span>
+                </button>
+                <button class="nav-btn group" data-tab="pass-strength">
+                    <svg class="w-5 h-5 mr-0 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    <span class="hidden md:inline">Pass Strength</span>
+                </button>
+                <button class="nav-btn group" data-tab="exif">
+                    <svg class="w-5 h-5 mr-0 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span class="hidden md:inline">EXIF Viewer</span>
+                </button>
+                <button class="nav-btn group" data-tab="crypto">
+                    <svg class="w-5 h-5 mr-0 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    <span class="hidden md:inline">Cryptography</span>
+                </button>
+            </nav>
+
+            <!-- Main Toolkit Content -->
+            <main class="w-full bg-dark-surface p-5 md:p-8 flex-grow overflow-y-auto">
+                
+                <!-- 1. Hash Calculator -->
+                <div id="tab-hash" class="tab-content active">
+                    <h2 class="text-2xl font-semibold text-accent mb-4 tracking-wide">Hash Calculator</h2>
+                    <div class="flex flex-col gap-4">
+                        <textarea id="hash-input" class="form-input" rows="4" placeholder="Paste or type text here..."></textarea>
+                        <button id="hash-calculate-btn" class="btn-primary-gradient">Calculate Hashes</button>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="hash-output-md5" class="form-label">MD5</label>
+                                <div class="relative">
+                                    <input type="text" id="hash-output-md5" class="form-input pr-14" readonly placeholder="MD5 Hash...">
+                                    <button id="hash-copy-md5" class="absolute inset-y-0 right-0 flex items-center px-3 text-dark-text-dim hover:text-accent transition-colors" title="Copy to clipboard">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="hash-output-sha1" class="form-label">SHA-1</label>
+                                <div class="relative">
+                                    <input type="text" id="hash-output-sha1" class="form-input pr-14" readonly placeholder="SHA-1 Hash...">
+                                    <button id="hash-copy-sha1" class="absolute inset-y-0 right-0 flex items-center px-3 text-dark-text-dim hover:text-accent transition-colors" title="Copy to clipboard">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="hash-output-sha256" class="form-label">SHA-256</label>
+                                <div class="relative">
+                                    <input type="text" id="hash-output-sha256" class="form-input pr-14" readonly placeholder="SHA-256 Hash...">
+                                    <button id="hash-copy-sha256" class="absolute inset-y-0 right-0 flex items-center px-3 text-dark-text-dim hover:text-accent transition-colors" title="Copy to clipboard">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Codec -->
+                <div id="tab-codec" class="tab-content">
+                    <h2 class="text-2xl font-semibold text-accent mb-4 tracking-wide">Codec (Encode / Decode)</h2>
+                    <div class="flex flex-col gap-4">
+                        <textarea id="codec-input" class="form-input" rows="5" placeholder="Input..."></textarea>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex flex-col gap-3">
+                                <button id="codec-b64-encode" class="btn-secondary">Base64 Encode</button>
+                                <button id="codec-b64-decode" class="btn-secondary">Base64 Decode</button>
+                            </div>
+                             <div class="flex flex-col gap-3">
+                                <button id="codec-url-encode" class="btn-secondary">URL Encode</button>
+                                <button id="codec-url-decode" class="btn-secondary">URL Decode</button>
+                            </div>
+                        </div>
+
+                        <div class="relative">
+                            <textarea id="codec-output" class="form-input pr-14" rows="5" placeholder="Output..." readonly></textarea>
+                            <button id="codec-copy-output" class="absolute top-2 right-0 flex items-center px-3 text-dark-text-dim hover:text-accent transition-colors" title="Copy to clipboard">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Password Generator -->
+                <div id="tab-pass-gen" class="tab-content">
+                    <h2 class="text-2xl font-semibold text-accent mb-4 tracking-wide">Password Generator</h2>
+                    <div class="flex flex-col gap-5">
+                        <div class="relative">
+                            <input type="text" id="pass-gen-output" class="form-input pr-14" readonly placeholder="Click 'Generate' to create a password...">
+                            <button id="pass-gen-copy" class="absolute inset-y-0 right-0 flex items-center px-3 text-dark-text-dim hover:text-accent transition-colors" title="Copy to clipboard">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            </button>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label for="pass-gen-length" class="form-label">Length</label>
+                                <span id="pass-gen-length-val" class="font-mono text-accent text-lg">16</span>
+                            </div>
+                            <input type="range" id="pass-gen-length" min="8" max="64" value="16" class="w-full h-2 bg-dark-border/50 rounded-lg appearance-none cursor-pointer range-thumb">
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <label class="flex items-center space-x-2 cursor-pointer group">
+                                <input type="checkbox" id="pass-gen-upper" class="form-checkbox" checked>
+                                <span class="group-hover:text-accent transition-colors">Uppercase (A-Z)</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer group">
+                                <input type="checkbox" id="pass-gen-lower" class="form-checkbox" checked>
+                                <span class="group-hover:text-accent transition-colors">Lowercase (a-z)</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer group">
+                                <input type="checkbox" id="pass-gen-numbers" class="form-checkbox" checked>
+                                <span class="group-hover:text-accent transition-colors">Numbers (0-9)</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer group">
+                                <input type="checkbox" id="pass-gen-symbols" class="form-checkbox" checked>
+                                <span class="group-hover:text-accent transition-colors">Symbols (!@#$)</span>
+                            </label>
+                        </div>
+                        
+                        <button id="pass-gen-btn" class="btn-primary-gradient">Generate Password</button>
+                    </div>
+                </div>
+
+                <!-- 4. Password Strength Checker -->
+                <div id="tab-pass-strength" class="tab-content">
+                    <h2 class="text-2xl font-semibold text-accent mb-4 tracking-wide">Password Strength Checker</h2>
+                    <div class="flex flex-col gap-3">
+                        <label for="pass-strength-input" class="form-label">Enter Password</label>
+                        <input type="password" id="pass-strength-input" class="form-input" placeholder="Type your password...">
+                        
+                        <div id="strength-bar-container" class="w-full h-3 bg-dark-border/50 rounded-full overflow-hidden">
+                            <div id="strength-bar-fill" class="h-full rounded-full" style="width: 0%;"></div>
+                        </div>
+
+                        <div class="text-center">
+                            <span id="strength-text" class="font-mono text-lg font-bold">&nbsp;</span>
+                        </div>
+                        
+                        <ul id="strength-feedback" class="text-sm text-dark-text-dim list-disc list-inside space-y-1">
+                            <!-- JS will populate this -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 5. EXIF VIEWER TAB -->
+                <div id="tab-exif" class="tab-content">
+                    <h2 class="text-2xl font-semibold text-accent mb-4 tracking-wide">EXIF Data Viewer</h2>
+                    <div class="flex flex-col gap-4">
+                        
+                        <!-- File Drop Zone -->
+                        <label for="exif-file-input" class="drop-zone">
+                            <span id="exif-drop-text">Drag & drop an image, or click to select</span>
+                            <input type="file" id="exif-file-input" class="hidden" accept="image/jpeg, image/png">
+                        </label>
+                        
+                        <!-- Results Area -->
+                        <div id="exif-results-container" class="hidden animate-fade-in-down">
+                            <h3 class="text-xl font-semibold text-accent-dark mb-3">Image Metadata</h3>
+                            <div id="exif-results" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- JS will populate this -->
+                            </div>
+                        </div>
+                        
+                        <!-- Error Message -->
+                        <div id="exif-error" class="text-red-500 font-mono hidden"></div>
+                    </div>
+                </div>
+                
+                <!-- 6. NEW Cryptography TAB -->
+                <div id="tab-crypto" class="tab-content">
+                    <h2 class="text-2xl font-semibold text-accent mb-4 tracking-wide">AES Cryptography</h2>
+                    <div class="flex flex-col gap-4">
+                        
+                        <label for="crypto-input" class="form-label">Text to Encrypt / Ciphertext to Decrypt</label>
+                        <textarea id="crypto-input" class="form-input" rows="5" placeholder="Enter your secret message or ciphertext here..."></textarea>
+                        
+                        <label for="crypto-key" class="form-label">Password / Key</label>
+                        <input type="password" id="crypto-key" class="form-input" placeholder="Enter your secret password...">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button id="crypto-encrypt-btn" class="btn-primary-gradient">Encrypt</button>
+                            <button id="crypto-decrypt-btn" class="btn-secondary">Decrypt</button>
+                        </div>
+
+                        <!-- Error Message -->
+                        <div id="crypto-error" class="text-red-500 font-mono hidden"></div>
+
+                        <label for="crypto-output" class="form-label">Output</label>
+                        <div class="relative">
+                            <textarea id="crypto-output" class="form-input pr-14" rows="5" placeholder="Result..." readonly></textarea>
+                            <button id="crypto-copy-output" class="absolute top-2 right-0 flex items-center px-3 text-dark-text-dim hover:text-accent transition-colors" title="Copy to clipboard">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+
+            </main>
+        </div>
+    </div>
+    
+    <!-- Message box -->
+    <div id="message-box" class="fixed bottom-5 right-5 bg-primary text-white font-bold py-3 px-5 rounded-lg shadow-lg shadow-primary/30 opacity-0 translate-y-3 transition-all duration-300 z-20">
+        Copied to clipboard!
+    </div>
+
+    <!-- 
+    ======================================
+    JAVASCRIPT LOGIC
+    ======================================
+    -->
+    <script>
+        // --- Particles.js Initialization ---
+        function initParticles() {
+            if (typeof particlesJS !== 'undefined') {
+                particlesJS('particles-js', {
+                    "particles": { "number": { "value": 80, "density": { "enable": true, "value_area": 800 } }, "color": { "value": "#3b82f6" }, "shape": { "type": "circle" }, "opacity": { "value": 0.5, "random": false }, "size": { "value": 3, "random": true }, "line_linked": { "enable": true, "distance": 150, "color": "#3b82f6", "opacity": 0.4, "width": 1 }, "move": { "enable": true, "speed": 2, "direction": "none", "random": false, "straight": false, "out_mode": "out", "bounce": false } }, "interactivity": { "detect_on": "canvas", "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": true, "mode": "push" }, "resize": true }, "modes": { "grab": { "distance": 140, "line_linked": { "opacity": 1 } }, "push": { "particles_nb": 4 } } }, "retina_detect": true
+                });
+            }
+        }
+
+        // --- Splash Screen Logic ---
+        window.addEventListener('load', () => {
+            initParticles();
+            const splash = document.getElementById('splash-screen');
+            const app = document.getElementById('app-container');
+
+            setTimeout(() => {
+                splash.classList.add('opacity-0', 'pointer-events-none');
+                app.classList.remove('opacity-0');
+                app.classList.add('opacity-100');
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                }, 500); 
+            }, 1500);
+        });
+
+
+        // --- Helper Functions ---
+        const showMessage = (text) => {
+            const msgBox = document.getElementById('message-box');
+            msgBox.textContent = text;
+            msgBox.classList.remove('opacity-0', 'translate-y-3');
+            setTimeout(() => {
+                msgBox.classList.add('opacity-0', 'translate-y-3');
+            }, 2000);
+        };
+
+        function addClickAnimation(element, animationClass) {
+            element.classList.add(animationClass);
+            element.addEventListener('animationend', () => {
+                element.classList.remove(animationClass);
+            }, { once: true });
+        }
+
+        // Reusable copy to clipboard function
+        function copyText(textToCopy, buttonElement) {
+            if (!textToCopy) return;
+
+            // Animate the button
+            if (buttonElement) {
+                addClickAnimation(buttonElement, 'animate-jiggle');
+            }
+
+            // Use textarea method for compatibility
+            const textarea = document.createElement('textarea');
+            textarea.value = textToCopy;
+            textarea.style.position = 'fixed'; 
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try { 
+                document.execCommand('copy'); 
+                showMessage('Copied to clipboard!'); 
+            } 
+            catch (err) { 
+                showMessage('Failed to copy.'); 
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // --- Tab Switching Logic ---
+        const navBtns = document.querySelectorAll('.nav-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all buttons and content
+                navBtns.forEach(b => b.classList.remove('active-nav'));
+                tabContents.forEach(c => c.classList.remove('active'));
+
+                // Add active class to clicked button
+                btn.classList.add('active-nav');
+                
+                // Show the corresponding tab content
+                const tabId = btn.getAttribute('data-tab');
+                const contentToShow = document.getElementById(`tab-${tabId}`);
+                if (contentToShow) {
+                    contentToShow.classList.add('active');
+                }
+            });
+        });
+
+        // --- 1. Hash Calculator Logic ---
+        const hashBtn = document.getElementById('hash-calculate-btn');
+        const hashInput = document.getElementById('hash-input');
+        const hashOutMd5 = document.getElementById('hash-output-md5');
+        const hashOutSha1 = document.getElementById('hash-output-sha1');
+        const hashOutSha256 = document.getElementById('hash-output-sha256');
+
+        hashBtn.addEventListener('click', () => {
+            addClickAnimation(hashBtn, 'animate-click-pulse');
+            const input = hashInput.value;
+            if (!input) {
+                hashOutMd5.value = '';
+                hashOutSha1.value = '';
+                hashOutSha256.value = '';
+                return;
+            }
+            try {
+                hashOutMd5.value = CryptoJS.MD5(input).toString();
+                hashOutSha1.value = CryptoJS.SHA1(input).toString();
+                hashOutSha256.value = CryptoJS.SHA256(input).toString();
+            } catch (e) { console.error("Hashing error:", e); showMessage("Error during hashing."); }
+        });
+
+        hashInput.addEventListener('input', () => {
+            hashOutMd5.value = '';
+            hashOutSha1.value = '';
+            hashOutSha256.value = '';
+        });
+
+        // Add event listeners for new copy buttons
+        document.getElementById('hash-copy-md5').addEventListener('click', (e) => {
+            copyText(hashOutMd5.value, e.currentTarget);
+        });
+        document.getElementById('hash-copy-sha1').addEventListener('click', (e) => {
+            copyText(hashOutSha1.value, e.currentTarget);
+        });
+        document.getElementById('hash-copy-sha256').addEventListener('click', (e) => {
+            copyText(hashOutSha256.value, e.currentTarget);
+        });
+
+        // --- 2. Codec Logic ---
+        const codecInput = document.getElementById('codec-input');
+        const codecOutput = document.getElementById('codec-output');
+        
+        document.getElementById('codec-b64-encode').addEventListener('click', () => {
+            try { codecOutput.value = btoa(codecInput.value); } 
+            catch (e) { codecOutput.value = "Error: Invalid characters for Base64 encoding."; }
+        });
+        document.getElementById('codec-b64-decode').addEventListener('click', () => {
+            try { codecOutput.value = atob(codecInput.value); } 
+            catch (e) { codecOutput.value = "Error: Invalid Base64 string."; }
+        });
+        document.getElementById('codec-url-encode').addEventListener('click', () => {
+            try { codecOutput.value = encodeURIComponent(codecInput.value); } 
+            catch (e) { codecOutput.value = "Error during URL encoding."; }
+        });
+        document.getElementById('codec-url-decode').addEventListener('click', () => {
+            try { codecOutput.value = decodeURIComponent(codecInput.value); } 
+            catch (e) { codecOutput.value = "Error: Invalid URL-encoded string."; }
+        });
+        
+        // Add event listener for codec copy button
+        document.getElementById('codec-copy-output').addEventListener('click', (e) => {
+            copyText(codecOutput.value, e.currentTarget);
+        });
+
+        // --- 3. Password Generator Logic ---
+        const passGenOutput = document.getElementById('pass-gen-output');
+        const passGenLengthSlider = document.getElementById('pass-gen-length');
+        const passGenLengthVal = document.getElementById('pass-gen-length-val');
+        const passGenUpper = document.getElementById('pass-gen-upper');
+        const passGenLower = document.getElementById('pass-gen-lower');
+        const passGenNumbers = document.getElementById('pass-gen-numbers');
+        const passGenSymbols = document.getElementById('pass-gen-symbols');
+        const passGenBtn = document.getElementById('pass-gen-btn');
+        const passGenCopyBtn = document.getElementById('pass-gen-copy');
+
+        const charsets = {
+            upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            lower: 'abcdefghijklmnopqrstuvwxyz',
+            numbers: '0123456789',
+            symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?'
+        };
+
+        passGenLengthSlider.addEventListener('input', () => {
+            passGenLengthVal.textContent = passGenLengthSlider.value;
+        });
+
+        passGenBtn.addEventListener('click', () => {
+            addClickAnimation(passGenBtn, 'animate-click-pulse');
+            const length = parseInt(passGenLengthSlider.value);
+            let charPool = '';
+            if (passGenUpper.checked) charPool += charsets.upper;
+            if (passGenLower.checked) charPool += charsets.lower;
+            if (passGenNumbers.checked) charPool += charsets.numbers;
+            if (passGenSymbols.checked) charPool += charsets.symbols;
+
+            if (charPool === '') {
+                passGenOutput.value = "Error: Select at least one character set.";
+                return;
+            }
+            let password = '';
+            const randomValues = new Uint32Array(length);
+            window.crypto.getRandomValues(randomValues);
+            for (let i = 0; i < length; i++) {
+                password += charPool[randomValues[i] % charPool.length];
+            }
+            passGenOutput.value = password;
+        });
+        
+        // Updated to use the new reusable function
+        passGenCopyBtn.addEventListener('click', (e) => {
+            copyText(passGenOutput.value, e.currentTarget);
+        });
+
+        // --- 4. Password Strength Checker Logic ---
+        const passStrengthInput = document.getElementById('pass-strength-input');
+        const strengthBar = document.getElementById('strength-bar-fill');
+        const strengthText = document.getElementById('strength-text');
+        const strengthFeedback = document.getElementById('strength-feedback');
+        
+        passStrengthInput.addEventListener('input', () => {
+            const password = passStrengthInput.value;
+            let score = 0;
+            let feedback = [];
+
+            if (!password) {
+                strengthBar.style.width = '0%';
+                strengthText.textContent = '';
+                strengthFeedback.innerHTML = '';
+                return;
+            }
+            if (password.length >= 8) { score++; feedback.push('✓ At least 8 characters'); } else { feedback.push('✗ Less than 8 characters'); }
+            if (password.length >= 12) { score++; feedback.push('✓ At least 12 characters'); }
+            if (/[A-Z]/.test(password)) { score++; feedback.push('✓ Contains uppercase letter'); } else { feedback.push('✗ No uppercase letter'); }
+            if (/[a-z]/.test(password)) { score++; feedback.push('✓ Contains lowercase letter'); } else { feedback.push('✗ No lowercase letter'); }
+            if (/[0-9]/.test(password)) { score++; feedback.push('✓ Contains number'); } else { feedback.push('✗ No number'); }
+            if (/[^A-Za-z0.9]/.test(password)) { score++; feedback.push('✓ Contains symbol'); } else { feedback.push('✗ No symbol'); }
+            
+            strengthFeedback.innerHTML = feedback.map(item => `<li class="${item.startsWith('✓') ? 'text-accent' : 'text-red-500'}">${item}</li>`).join('');
+
+            switch (score) {
+                case 0: case 1: case 2:
+                    strengthBar.style.width = '25%'; strengthBar.className = 'h-full rounded-full bg-red-600';
+                    strengthText.textContent = 'WEAK'; strengthText.className = 'font-mono text-lg font-bold text-red-600';
+                    break;
+                case 3: case 4:
+                    strengthBar.style.width = '50%'; strengthBar.className = 'h-full rounded-full bg-yellow-500';
+                    strengthText.textContent = 'MEDIUM'; strengthText.className = 'font-mono text-lg font-bold text-yellow-500';
+                    break;
+                case 5:
+                    strengthBar.style.width = '75%'; strengthBar.className = 'h-full rounded-full bg-blue-500';
+                    strengthText.textContent = 'STRONG'; strengthText.className = 'font-mono text-lg font-bold text-blue-500';
+                    break;
+                case 6:
+                    strengthBar.style.width = '100%'; strengthBar.className = 'h-full rounded-full bg-accent';
+                    strengthText.textContent = 'VERY STRONG'; strengthText.className = 'font-mono text-lg font-bold text-accent';
+                    break;
+                default:
+                    strengthBar.style.width = '0%'; strengthText.textContent = '';
+            }
+        });
+
+        // --- 5. EXIF Viewer Logic ---
+        const exifFileInput = document.getElementById('exif-file-input');
+        const exifDropText = document.getElementById('exif-drop-text');
+        const exifResultsContainer = document.getElementById('exif-results-container');
+        const exifResultsDiv = document.getElementById('exif-results');
+        const exifErrorDiv = document.getElementById('exif-error');
+        const exifDropZone = document.querySelector('.drop-zone');
+
+        exifFileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                showExifError('Please select an image file (JPEG, PNG).');
+                return;
+            }
+
+            exifDropText.textContent = `Processing "${file.name}"...`;
+            exifResultsContainer.classList.add('hidden');
+            exifErrorDiv.classList.add('hidden');
+
+            EXIF.getData(file, function() {
+                const tags = EXIF.getAllTags(this);
+                
+                if (Object.keys(tags).length === 0) {
+                    showExifError(`No EXIF data found in "${file.name}".`);
+                    exifDropText.textContent = `Drag & drop an image, or click to select`;
+                    return;
+                }
+
+                let flashStatus = 'Unknown';
+                if (tags.Flash !== undefined) {
+                    const flashVal = typeof tags.Flash === 'number' ? tags.Flash : parseInt(tags.Flash.toString());
+                    const didFire = [1, 5, 7, 9, 13, 15, 25, 29, 31, 65, 69, 71, 73, 77, 79, 89, 93, 95];
+                    if (didFire.includes(flashVal)) {
+                        flashStatus = 'Used';
+                    } else {
+                        flashStatus = 'Not Used';
+                    }
+                }
+
+                const dataToShow = {
+                    "Make": tags.Make,
+                    "Model": tags.Model,
+                    "Date/Time": tags.DateTimeOriginal,
+                    "Exposure Time": tags.ExposureTime ? formatFraction(tags.ExposureTime) + "s" : undefined,
+                    "Aperture": tags.FNumber ? `f/${formatFraction(tags.FNumber)}` : undefined,
+                    "ISO": tags.ISOSpeedRatings ? tags.ISOSpeedRatings.toString() : undefined,
+                    "Flash": flashStatus
+                };
+
+                exifResultsDiv.innerHTML = ''; // Clear previous results
+                let hasData = false;
+
+                for (const [key, value] of Object.entries(dataToShow)) {
+                    if (value) {
+                        hasData = true;
+                        const item = document.createElement('div');
+                        item.className = 'bg-dark-bg p-3 rounded-md border border-dark-border/50';
+                        item.innerHTML = `
+                            <span class="form-label text-xs">${key}</span>
+                            <p class="text-dark-text font-mono text-sm break-words">${value}</p>
+                        `;
+                        exifResultsDiv.appendChild(item);
+                    }
+                }
+
+                if (!hasData) {
+                    showExifError(`Found EXIF data, but not the specific tags (Make, Model, Date, etc.) in "${file.name}".`);
+                    exifDropText.textContent = `Drag & drop an image, or click to select`;
+                    return;
+                }
+
+                exifResultsContainer.classList.remove('hidden');
+                exifDropText.textContent = `Successfully processed "${file.name}". Select another?`;
+            });
+        }
+
+        function showExifError(message) {
+            exifErrorDiv.textContent = message;
+            exifErrorDiv.classList.remove('hidden');
+        }
+
+        function formatFraction(frac) {
+            if (!frac) return '?';
+            if (typeof frac === 'number') {
+                if (frac < 1) return `1/${Math.round(1 / frac)}`;
+                return frac;
+            }
+            if (frac.numerator === 0 || frac.denominator === 0) return 0;
+            if (frac.numerator % frac.denominator === 0) return frac.numerator / frac.denominator;
+            if (frac.denominator === 1) return frac.numerator;
+            if (frac.numerator > frac.denominator) {
+                return (frac.numerator / frac.denominator).toFixed(1);
+            }
+            return `1/${frac.denominator}`;
+        }
+
+        // Add drag/drop styling to the label
+        exifDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            exifDropZone.classList.add('dragover');
+        });
+        exifDropZone.addEventListener('dragleave', () => {
+            exifDropZone.classList.remove('dragover');
+        });
+        exifDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            exifDropZone.classList.remove('dragover');
+            exifFileInput.files = e.dataTransfer.files;
+            handleFileSelect({ target: exifFileInput }); // Manually trigger
+        });
+
+        // --- 6. Cryptography Logic (AES) ---
+        const cryptoInput = document.getElementById('crypto-input');
+        const cryptoKey = document.getElementById('crypto-key');
+        const cryptoOutput = document.getElementById('crypto-output');
+        const cryptoEncryptBtn = document.getElementById('crypto-encrypt-btn');
+        const cryptoDecryptBtn = document.getElementById('crypto-decrypt-btn');
+        const cryptoCopyBtn = document.getElementById('crypto-copy-output');
+        const cryptoErrorDiv = document.getElementById('crypto-error');
+
+        function showCryptoError(message) {
+            cryptoErrorDiv.textContent = message;
+            cryptoErrorDiv.classList.remove('hidden');
+        }
+
+        cryptoEncryptBtn.addEventListener('click', (e) => {
+            addClickAnimation(e.currentTarget, 'animate-click-pulse');
+            cryptoErrorDiv.classList.add('hidden');
+            
+            // --- USER REQUESTED STYLE CHANGE ---
+            cryptoEncryptBtn.className = 'btn-primary-gradient';
+            cryptoDecryptBtn.className = 'btn-secondary';
+            // --- END OF CHANGE ---
+
+            const text = cryptoInput.value;
+            const key = cryptoKey.value;
+
+            if (!text || !key) {
+                showCryptoError('Please provide both text and a password.');
+                return;
+            }
+
+            try {
+                const ciphertext = CryptoJS.AES.encrypt(text, key).toString();
+                cryptoOutput.value = ciphertext;
+                // --- USER REQUESTED CHANGE ---
+                cryptoInput.value = ''; // Erase the input text
+                cryptoKey.value = '';   // Erase the password
+                // --- END OF CHANGE ---
+            } catch (err) {
+                console.error("Encryption error:", err);
+                showCryptoError('Encryption failed.');
+            }
+        });
+
+        cryptoDecryptBtn.addEventListener('click', (e) => {
+            addClickAnimation(e.currentTarget, 'animate-click-pulse');
+            cryptoErrorDiv.classList.add('hidden');
+
+            // --- USER REQUESTED STYLE CHANGE ---
+            cryptoDecryptBtn.className = 'btn-primary-gradient';
+            cryptoEncryptBtn.className = 'btn-secondary';
+            // --- END OF CHANGE ---
+
+            const ciphertext = cryptoInput.value;
+            const key = cryptoKey.value;
+
+            if (!ciphertext || !key) {
+                showCryptoError('Please provide both ciphertext and a password.');
+                return;
+            }
+
+            try {
+                const bytes = CryptoJS.AES.decrypt(ciphertext, key);
+                const originalText = bytes.toString(CryptoJS.enc.Utf8);
+
+                if (originalText) {
+                    cryptoOutput.value = originalText;
+                } else {
+                    showCryptoError('Decryption failed. Invalid key or ciphertext.');
+                }
+            } catch (err) {
+                console.error("Decryption error:", err);
+                showCryptoError('Decryption failed. Invalid key or ciphertext.');
+            }
+        });
+
+        cryptoCopyBtn.addEventListener('click', (e) => {
+            copyText(cryptoOutput.value, e.currentTarget);
+        });
+
+
+        // --- Apply shared styles ---
+        function applyBaseStyles() {
+            const styleSheet = document.createElement("style");
+            styleSheet.textContent = `
+                /* --- Form Styles --- */
+                .form-input {
+                    font-family: 'Fira Code', monospace; width: 100%; 
+                    /* FIXED: Removed padding-right from here, will be applied by Tailwind class */
+                    padding-top: 0.75rem; padding-bottom: 0.75rem;
+                    padding-left: 0.75rem; 
+                    background-color: #0f172a; border: 1px solid #374151; border-radius: 0.375rem;
+                    color: #f9fafb; transition: all 0.3s ease-in-out;
+                }
+                .form-input::placeholder { color: #9ca3af; }
+                .form-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px #3b82f6; }
+                .form-label {
+                    display: block; margin-bottom: 0.5rem; font-size: 0.875rem; line-height: 1.25rem;
+                    font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;
+                }
+                .form-checkbox {
+                    width: 1.25rem; height: 1.25rem; background-color: #111827; border: 1px solid #374151;
+                    border-radius: 0.25rem; color: #3b82f6; transition: all 0.2s ease;
+                }
+                .form-checkbox:focus { box-shadow: 0 0 0 2px #111827, 0 0 0 4px #3b82f6; outline: none; }
+                .form-checkbox:checked { border-color: #3b82f6; background-color: #3b82f6; }
+
+                /* --- Button Styles --- */
+                .btn-primary-gradient {
+                    width: 100%; background-image: linear-gradient(to right, #3b82f6, #60a5fa);
+                    color: white; font-weight: 700; padding: 0.75rem 1.25rem; border-radius: 0.5rem;
+                    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -2px rgba(59, 130, 246, 0.15);
+                    transition: all 0.3s ease-in-out;
+                }
+                .btn-primary-gradient:hover {
+                    background-image: linear-gradient(to right, #2563eb, #3b82f6);
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 20px -3px rgba(59, 130, 246, 0.4), 0 4px 6px -2px rgba(59, 130, 246, 0.2);
+                }
+                .btn-secondary {
+                    font-family: 'Fira Code', monospace; width: 100%; background-color: #374151;
+                    color: #f9fafb; padding: 0.75rem 1.25rem; /* Increased padding to match primary */ 
+                    border-radius: 0.5rem; /* Increased border-radius to match primary */
+                    border: 1px solid transparent; transition: all 0.3s ease-in-out;
+                }
+                .btn-secondary:hover { background-color: #4b5563; border-color: #0e7490; transform: translateY(-1px); }
+
+                /* --- Sidebar Nav Styles --- */
+                .nav-btn {
+                    display: flex; flex: 1; align-items: center; justify-content: center;
+                    width: 100%; font-family: 'Fira Code', monospace; font-weight: 600; font-size: 0.9rem;
+                    color: #9ca3af; padding: 0.75rem 1rem; border-radius: 0.375rem;
+                    text-align: left; transition: all 0.3s ease-out; margin-bottom: 0.5rem;
+                    transform: translateZ(0);
+                }
+                .nav-btn:last-child { margin-bottom: 0; }
+                
+                @media (min-width: 768px) {
+                    .nav-btn { flex: none; justify-content: flex-start; padding-left: 1rem; padding-right: 1rem; }
+                    .nav-btn:not(.active-nav):hover {
+                        background-color: #374151; color: #f9fafb; padding-left: 1.5rem;
+                    }
+                }
+                .active-nav {
+                    background-color: #0e7490; color: #f9fafb;
+                    box-shadow: 0 4px 6px -1px rgba(14, 116, 144, 0.3), 0 2px 4px -1px rgba(14, 116, 144, 0.18);
+                }
+                @media (min-width: 768px) {
+                    .active-nav { padding-left: 1.5rem; }
+                }
+
+                /* --- Slider Thumb --- */
+                .range-thumb::-webkit-slider-thumb {
+                    -webkit-appearance: none; margin-top: -0.4rem; width: 1.25rem; height: 1.25rem;
+                    background-color: #3b82f6; border-radius: 9999px; cursor: pointer; transition: all 0.3s ease;
+                }
+                .range-thumb::-webkit-slider-thumb:hover { background-color: #2563eb; transform: scale(1.1); }
+                .range-thumb::-moz-range-thumb {
+                    width: 1.25rem; height: 1.25rem; background-color: #3b82f6;
+                    border-radius: 9999px; cursor: pointer; border: none; transition: all 0.3s ease;
+                }
+                .range-thumb::-moz-range-thumb:hover { background-color: #2563eb; transform: scale(1.1); }
+            `;
+            document.head.appendChild(styleSheet);
+        }
+        
+        // Apply styles on document load
+        document.addEventListener('DOMContentLoaded', applyBaseStyles);
+
+    </script>
+</body>
+</html>
+
