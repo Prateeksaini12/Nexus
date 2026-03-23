@@ -14,7 +14,7 @@ No servers, no tracking, no data leaks. Every operation (encryption, hashing, fi
 
 ⚙️ Features
 
-NEXUS combines six essential cybersecurity tools into one sleek and powerful interface:
+#NEXUS combines six essential cybersecurity tools into one sleek and powerful interface:
 
 🧩 Core Tools
 🔒 AES Cryptography – Encrypt or decrypt sensitive messages using AES-256 with a password.
