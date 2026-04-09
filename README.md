@@ -1,4 +1,4 @@
-🚀 NEXUS Security Toolkit
+🚀 NEXUS Security 
 
 An All-in-One Client-Side Security Utility for Privacy-Conscious Users
 NEXUS is a professional, privacy-first web application that provides a complete suite of essential cybersecurity tools — all running 100% in your browser.
