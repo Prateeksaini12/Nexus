@@ -40,7 +40,7 @@ Unlike most online tools, NEXUS performs all operations on the client-side using
 ✅ Safe for offline or air-gapped environments
 
 
-💻 Tech Stack
+💻 Tech 
 
 Frontend: HTML5, Tailwind CSS, JavaScript (ES6+)
 Libraries:
