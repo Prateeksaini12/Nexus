@@ -12,7 +12,7 @@ No servers, no tracking, no data leaks. Every operation (encryption, hashing, fi
 🤖 Android APK: https://storage.appilix.com/uploads/app-apk-690a3f93bc4c4-1762279315.apk
 
 
-⚙️ Featu
+⚙️ Featur
 
 ## NEXUS combines six essential cybersecurity tools into one sleek and powerful interface:
 
