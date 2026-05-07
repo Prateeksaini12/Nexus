@@ -48,7 +48,7 @@ Crypto.js
  – AES and hashing algorithms
 
 EXIF.js
- – Local image metadata par
+ – Local image metadata pars
 
 Particles.js
  – Animated landing visuals
