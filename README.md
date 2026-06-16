@@ -30,7 +30,7 @@ No servers, no tracking, no data leaks. Every operation (encryption, hashing, fi
 
 🔄 Codec Utility – Encode and decode Base64 or URL-safe strings in seconds.
 
-🛡️ Privacy-First D
+🛡️ Privacy-First De
 
 Unlike most online tools, NEXUS performs all operations on the client-side using JavaScript.
 ✅ No internet dependency after load
