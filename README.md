@@ -5,7 +5,7 @@ NEXUS is a professional, privacy-first web application that provides a complete 
 No servers, no tracking, no data leaks. Every operation (encryption, hashing, file analysis) happens locally on your device to ensure complete data privacy.
 
 
-🌐 Live 
+🌐 Live A
 
 🔹 Web App: https://nexuscybertools.netlify.app/
 
